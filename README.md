@@ -1,19 +1,18 @@
-Problem: Automate the workflow for preparing a host.
+Problem: Registry space optimization and cleanup.
 
-Goal: Create an Ansible script that provisions an Ubuntu server 22.04 with the following
-components. Applications should be installed with rootless Podman containers running as
-unprivileged user app (unless stated otherwise).
+Goal: The GitLab container storage for images regularly consumes excessive storage on the
+maintenance system and requires manual clearing. Implement a sustainable solution to
+manage container image storage, automate cleanup, and prevent storage overrun.
 
 Subtasks:
-1. Ansible script should not expect to be root on the destination but should use sudo
-2. You can use this project as a reference (it is using rootless Podman containers with
-Systemd, sets up Prometheus, Wireguard, a firewall for using privileged ports [in the ingress
-role] and various apps in the compose directory (i.e. grafana, healthchecks). ):
-https://github.com/brettinternet/homelab
-3. Use and commit a locally defined Vagrantfile configuration for easy testing and
-developing: https://www.vagrantup.com/docs/provisioning/ansible
-4.MOTD should be configurable
-5. Block all ports except SSH, email, HTTP, VPN, BigBlueButton ports, AdGuardHome ports
-( 53/tcp , 67/udp , 853/tcp , 784/udp , 5443/tcp ) and GitLab (Git+SSH, HTTP[S] and Docker
-registry) ports via firewall.
-6. Additionally, write a flask app in Python to trigger ansible run using API.
+1. Deploy gitlab as docker container(standalone) with appropriate docker-compose file
+and following:
+2. Persistent storage 5G
+3. Additional persistent storage for container registry 5G to hold docker images.
+4. Image Expiration Policies. This should be configurable in terms of days.
+5. Garbage Collection: Cron based automation to reclaim occupied space by deleted
+images.
+6. Notifications: Implement a monitoring and notification mechanism to send notifs for
+all actions(disk 70% full, 90% full, cleaning up started/finished, disk space reclaimed
+start/end)
+7. Any additional optimizations should be listed in a document for future use-case.
