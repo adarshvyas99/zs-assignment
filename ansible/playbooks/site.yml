@@ -1,0 +1,8 @@
+---
+- name: Provision Ubuntu 22.04 with Podman & Firewall
+  hosts: local
+  become: true
+  roles:
+  - common
+  - firewall
+  - podman

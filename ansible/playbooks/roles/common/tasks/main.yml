@@ -1,0 +1,17 @@
+---
+- name: Update and install required packages
+  apt:
+    name: "{{ item }}"
+    state: latest
+    with_items:
+      - sudo
+      - curl
+      - ufw
+      - acl
+      - podman
+    update_cache: yes
+
+- name: Configure MOTD
+  copy:
+    content: "Welcome to Ansible Managed Server\n"
+    dest: /etc/motd

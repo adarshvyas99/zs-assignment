@@ -1,0 +1,59 @@
+---
+  - name: Create unprivileged user 'zs_app'
+    user:
+      name: zs_app
+      shell: /bin/bash
+  
+  - name: Enable linger for rootless Podman
+    command: loginctl enable-linger zs_app
+  
+  - name: Ensure Podman is installed
+    become: true
+    apt:
+      name: podman
+      state: present
+  
+  - name: Ensure Podman is configured for rootless operation
+    become: true
+    lineinfile:
+      path: /etc/subuid
+      line: "zs_app:100000:65536"
+  
+  - name: Ensure zs_app has correct permissions for Podman directories
+    ansible.builtin.file:
+      path: "{{ item }}"
+      owner: zs_app
+      group: zs_app
+      mode: '0755'
+    with_items:
+      - /var/lib/containers
+      - /var/run/containers
+      - /etc/containers
+      - /home/zs_app/.local/share/containers
+  
+  - name: Ensure /tmp has the right permissions for Ansible and Podman
+    ansible.builtin.file:
+      path: /tmp
+      mode: '1777'
+  
+  - name: Create a safe temporary directory
+    become: true
+    file:
+      path: /tmp/ansible
+      state: directory
+      owner: zs_app
+      group: zs_app
+      mode: '1777'
+  
+  - name: Ensure Podman is running as rootless user (zs_app)
+    become_user: zs_app
+    command: podman info
+
+  - name: Run rootless Podman container for a sample application (nginx)
+    become_user: zs_app
+    ansible.builtin.command:
+      cmd: podman run -d --name webserver -p 8080:80 nginx
+      creates: /home/zs_app/webserver
+    args:
+      chdir: /home/zs_app
+      removes: /home/zs_app/webserver

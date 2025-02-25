@@ -1,0 +1,18 @@
+---
+- name: Allow required ports
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop:
+    - 22    # SSH
+    - 80    # HTTP
+    - 443   # HTTPS
+    - 53    # AdGuard DNS
+    - 67    # DHCP
+    - 853   # DNS-over-TLS
+    - 784   # WireGuard VPN
+    - 5443  # AdGuard Management
+
+- name: Enable UFW firewall
+  community.general.ufw:
+    state: enabled
