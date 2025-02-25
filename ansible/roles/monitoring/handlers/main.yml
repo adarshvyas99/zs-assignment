@@ -1,0 +1,10 @@
+---
+- name: Restart Prometheus
+  command: docker-compose restart prometheus
+  args:
+    chdir: "{{ gitlab_config_dir }}"
+
+- name: Restart Grafana
+  command: docker-compose restart grafana
+  args:
+    chdir: "{{ gitlab_config_dir }}"

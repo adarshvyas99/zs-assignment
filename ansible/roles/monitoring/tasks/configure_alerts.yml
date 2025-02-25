@@ -1,0 +1,11 @@
+- name: Deploy Alerting Script
+  template:
+    src: alert-script.sh.j2
+    dest: /usr/local/bin/alert-script.sh
+    mode: '0755'
+
+- name: Setup cron job for monitoring
+  cron:
+    name: "Monitor Disk Space"
+    job: "/usr/local/bin/alert-script.sh"
+    minute: "*/30"

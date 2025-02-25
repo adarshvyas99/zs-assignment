@@ -1,0 +1,27 @@
+version: '3.7'
+services:
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    volumes:
+      - "{{ prometheus_data_dir }}:/prometheus"
+      - "{{ prometheus_config_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+      
+  alertmanager:
+    image: prom/alertmanager
+    restart: always
+    volumes:
+      - "{{ prometheus_config_dir }}/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+
+  grafana:
+    image: grafana/grafana
+    restart: always
+    volumes:
+      - "{{ grafana_data_dir }}:/var/lib/grafana"
+      - "{{ grafana_config_dir }}/grafana.ini:/etc/grafana/grafana.ini"
+    ports:
+      - "3000:3000"

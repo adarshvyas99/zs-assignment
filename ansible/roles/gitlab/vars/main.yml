@@ -1,0 +1,11 @@
+gitlab_user: gitlab
+gitlab_data_dir: /var/lib/gitlab/data
+gitlab_config_dir: /etc/gitlab
+gitlab_registry_dir: /var/lib/gitlab/registry
+gitlab_version: latest
+monitoring_enabled: true
+prometheus_data_dir: /var/lib/prometheus
+prometheus_config_dir: /etc/prometheus
+grafana_data_dir: /var/lib/grafana
+grafana_config_dir: /etc/grafana
+cleanup_threshold_days: 7

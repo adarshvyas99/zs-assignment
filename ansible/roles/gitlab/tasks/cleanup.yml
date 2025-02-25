@@ -1,0 +1,6 @@
+- name: Setup cron job for registry cleanup
+  cron:
+    name: "GitLab Registry Cleanup"
+    job: "/usr/bin/docker exec gitlab gitlab-ctl registry-garbage-collect --delete-manifest"
+    minute: "0"
+    hour: "2"

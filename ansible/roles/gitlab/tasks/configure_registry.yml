@@ -1,0 +1,25 @@
+- name: Create directories for GitLab and registry storage
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ gitlab_user }}"
+    group: "{{ gitlab_user }}"
+  loop:
+    - "{{ gitlab_data_dir }}"
+    - "{{ gitlab_config_dir }}"
+    - "{{ gitlab_registry_dir }}"
+    - "{{ prometheus_config_dir }}"
+    - "{{ grafana_config_dir }}"
+    
+- name: Configure GitLab Container Registry
+  lineinfile:
+    path: /opt/gitlab/config/gitlab.rb
+    line: "{{ item }}"
+  loop:
+    - "registry['enable'] = true"
+    - "registry['storage_path'] = '/opt/gitlab/registry'"
+
+- name: Restart GitLab
+  service:
+    name: gitlab
+    state: restarted

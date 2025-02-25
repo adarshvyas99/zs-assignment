@@ -1,0 +1,12 @@
+---
+- name: Copy Monitoring Docker Compose file
+  template:
+    src: docker-compose.monitoring.yml.j2
+    dest: /opt/monitoring/docker-compose.yml
+  notify: Restart Monitoring
+
+- name: Start Monitoring containers (Prometheus, Grafana, Alertmanager)
+  command: docker-compose up -d
+  args:
+    chdir: /opt/monitoring
+

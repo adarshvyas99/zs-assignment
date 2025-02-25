@@ -1,0 +1,15 @@
+version: '3.7'
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:{{ gitlab_version }}
+    container_name: gitlab
+    restart: always
+    volumes:
+      - "{{ gitlab_config_dir }}:/etc/gitlab"
+      - "{{ gitlab_data_dir }}:/var/opt/gitlab"
+      - "{{ gitlab_registry_dir }}:/var/lib/registry"
+      - "{{ gitlab_logs }}:/var/log/gitlab"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "5005:5005"

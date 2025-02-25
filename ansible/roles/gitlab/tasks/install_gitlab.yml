@@ -1,0 +1,19 @@
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Install Docker Compose
+  get_url:
+    url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64"
+    dest: "/usr/local/bin/docker-compose"
+    mode: '0755'
+
+- name: Deploy GitLab using Docker Compose
+  template:
+    src: docker-compose.gitlab.yml.j2
+    dest: /opt/gitlab/docker-compose.yml
+
+- name: Start GitLab container
+  command: docker-compose -f /opt/gitlab/docker-compose.yml up -d
+
