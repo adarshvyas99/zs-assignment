@@ -1,0 +1,37 @@
+2025-02-21 11:51:17,395 p=2973 u=vagrant n=ansible | 192.168.121.125 | FAILED! => {
+    "msg": "to use the 'ssh' connection type with passwords, you must install the sshpass program"
+}
+2025-02-21 13:16:39,437 p=3059 u=vagrant n=ansible | 192.168.121.125 | FAILED! => {
+    "msg": "to use the 'ssh' connection type with passwords, you must install the sshpass program"
+}
+2025-02-21 13:23:51,963 p=3073 u=vagrant n=ansible | 192.168.121.125 | FAILED! => {
+    "msg": "to use the 'ssh' connection type with passwords, you must install the sshpass program"
+}
+2025-02-21 13:25:00,248 p=3568 u=vagrant n=ansible | 192.168.121.125 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+2025-02-21 13:25:31,158 p=3596 u=vagrant n=ansible | 192.168.121.125 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+2025-02-21 13:25:56,727 p=3621 u=vagrant n=ansible | 192.168.121.125 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+2025-02-21 13:36:30,034 p=3730 u=vagrant n=ansible | 192.168.121.125 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}

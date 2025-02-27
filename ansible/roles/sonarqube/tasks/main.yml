@@ -1,0 +1,29 @@
+---
+- name: Ensure Kubernetes is running
+  command: kubectl cluster-info
+
+- name: Download Helm install script
+  get_url:
+    url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+    dest: "/tmp/get_helm.sh"
+    mode: "0755"
+
+- name: Install Helm
+  command: /tmp/get_helm.sh
+
+- name: Add Helm repository
+  command: helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
+  args:
+    warn: false
+    
+- name: Update Helm repositories
+  command: helm repo update
+
+- name: Deploy SonarQube using Helm
+  command: >
+    helm upgrade --install sonarqube sonarqube/sonarqube \
+    --namespace sonarqube --create-namespace \
+    -f /etc/ansible/roles/sonarqube/templates/values.yaml
+
+- name: Wait for SonarQube to be ready
+  command: kubectl wait --for=condition=available --timeout=300s deployment/sonarqube -n sonarqube

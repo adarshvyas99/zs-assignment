@@ -1,0 +1,3 @@
+---
+- name: Restart SonarQube
+  command: kubectl rollout restart deployment/sonarqube -n sonarqube

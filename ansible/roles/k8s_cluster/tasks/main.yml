@@ -1,0 +1,99 @@
+---
+- name: Install dependencies for Kubernetes
+  apt:
+    name: 
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+    update_cache: yes
+
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repository
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    filename: docker
+
+- name: Install Docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+    update_cache: yes
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Add user to Docker group
+  user:
+    name: "{{ ansible_user | default('ubuntu') }}"
+    groups: docker
+    append: yes
+  when: ansible_user is defined
+
+- name: Restart Docker if necessary
+  systemd:
+    name: docker
+    state: restarted
+  when: ansible_os_family == "Debian"
+
+- name: Generate containerd default config
+  command: containerd config default
+  register: containerd_default_config
+  changed_when: false
+
+- name: Ensure CRI plugin is enabled in containerd
+  copy:
+    content: "{{ containerd_default_config.stdout | regex_replace('disabled_plugins = \\[.*?\\]', 'disabled_plugins = []') }}"
+    dest: /etc/containerd/config.toml
+    mode: '0644'
+  notify: Restart containerd
+  
+- name: Add Kubernetes GPG Key
+  shell: |
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes Repository
+  shell: |
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+- name: Install Kubernetes components
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: yes
+
+- name: Initialize Kubernetes Cluster
+  command: kubeadm init --pod-network-cidr=192.168.0.0/16
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: Configure kubectl for root user
+  file:
+    path: $HOME/.kube
+    state: directory
+    mode: '0755'
+
+- name: Copy admin.conf for kubectl configuration
+  shell: |
+    cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    chown $(id -u):$(id -g) $HOME/.kube/config
+
+- name: Install Calico Network Plugin
+  command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml

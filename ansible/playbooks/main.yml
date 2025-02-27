@@ -1,0 +1,7 @@
+---
+- name: Setup Kubernetes Cluster and Deploy SonarQube
+  hosts: local
+  become: true
+  roles:
+    - k8s_cluster
+    - sonarqube
