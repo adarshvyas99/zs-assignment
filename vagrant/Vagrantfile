@@ -5,14 +5,49 @@
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
 # you're doing.
+ 
 Vagrant.configure("2") do |config|
+   config.vm.box = "ubuntu/jammy64"  # Ubuntu 20.04 LTS
+
+  # Define ansible Controller Node
+   config.vm.define "ansible-controller" do |master|
+       master.vm.hostname = "ansible-controller"
+       master.vm.network "private_network", ip: "192.168.56.10" # Static IP
+       config.vm.provider "virtualbox" do |vb|
+         vb.memory = "2048"
+         vb.cpus = 2
+     end
+     master.vm.provision "shell", inline: <<-SHELL
+       echo "Ansible Controller Node Configured"
+       sudo apt update
+       sudo apt upgrade 
+       sudo apt install ansible -y
+     SHELL
+   end
+
+  # Define ansible Managed Node
+   config.vm.define "ansible-managed" do |slave|
+       slave.vm.hostname = "ansible-managed"
+       slave.vm.network "private_network", ip: "192.168.56.11"  # Static IP
+       slave.vm.provider "virtualbox" do |vb|
+         vb.memory = "2048"  # Increase RAM to 2GB
+         vb.cpus = 2         # Increase to 2 cpu
+       end
+       slave.vm.provision "shell", inline: <<-SHELL
+         echo "Ansible Managed Node Configured"
+         sudo apt update    
+         sudo apt upgrade
+       SHELL
+   end
+end
+
+
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "ubuntu/jammy64"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -54,8 +89,6 @@ Vagrant.configure("2") do |config|
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
-  # Example for VirtualBox:
-  #
   # config.vm.provider "virtualbox" do |vb|
   #   # Display the VirtualBox GUI when booting the machine
   #   vb.gui = true
@@ -74,4 +107,3 @@ Vagrant.configure("2") do |config|
   #   apt-get update
   #   apt-get install -y apache2
   # SHELL
-end
