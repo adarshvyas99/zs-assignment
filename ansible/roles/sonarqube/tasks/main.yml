@@ -23,7 +23,7 @@
   command: >
     helm upgrade --install sonarqube sonarqube/sonarqube \
     --namespace sonarqube --create-namespace \
-    -f /etc/ansible/roles/sonarqube/templates/values.yaml
+    -f /home/vagrant/ansible/roles/sonarqube/templates/values.yaml
 
 - name: Wait for SonarQube to be ready
   command: kubectl wait --for=condition=available --timeout=300s deployment/sonarqube -n sonarqube
