@@ -1,0 +1,308 @@
+
+---
+# - name: Check if SonarQube Token Already Exists
+#   ansible.builtin.uri:
+#     url: "http://localhost:9000/api/user_tokens/search"
+#     method: GET
+#     user: "admin"
+#     password: "admin"
+#     force_basic_auth: yes
+#   register: sonar_existing_tokens
+
+# - name: Extract existing SonarQube token names
+#   set_fact:
+#     existing_tokens: "{{ sonar_existing_tokens.json.userTokens | map(attribute='name') | list }}"
+
+- name: Check if SonarQube Token File Exists
+  ansible.builtin.stat:
+    path: /home/vagrant/sonarqube_token.txt
+  register: sonar_token_file
+
+# - name: Read existing SonarQube Token if file exists
+#   ansible.builtin.set_fact:
+#     sonar_token: "{{ lookup('file', '/home/vagrant/sonarqube_token.txt') }}"
+#   when: sonar_token_file.stat.exists
+
+- name: Read existing SonarQube Token if file exists
+  ansible.builtin.slurp:
+    src: /home/vagrant/sonarqube_token.txt
+  register: sonar_token_content
+  when: sonar_token_file.stat.exists
+
+- name: Set sonar_token fact from existing file
+  ansible.builtin.set_fact:
+    sonar_token: "{{ sonar_token_content.content | b64decode }}"
+  when: sonar_token_file.stat.exists
+
+- name: Generate SonarQube Token (if not already generated)
+  ansible.builtin.uri:
+    url: "http://localhost:9000/api/user_tokens/generate"
+    method: POST
+    user: "admin"
+    password: "admin"
+    force_basic_auth: yes
+    body_format: form-urlencoded
+    body:
+      name: "zopstix-ansible-token-2"
+  register: sonar_token_response
+  when: not sonar_token_file.stat.exists
+
+- name: Store the generated SonarQube Token
+  ansible.builtin.copy:
+    content: "{{ sonar_token_response.json.token }}"
+    dest: /home/vagrant/sonarqube_token.txt
+    mode: "0600"
+    owner: vagrant
+    group: vagrant
+  when: not sonar_token_file.stat.exists
+
+- name: Set sonar_token fact from generated value
+  ansible.builtin.set_fact:
+    sonar_token: "{{ sonar_token_response.json.token }}"
+  when: not sonar_token_file.stat.exists
+
+# - name: Generate SonarQube Token if Not Exists
+#   ansible.builtin.uri:
+#     url: "http://localhost:9000/api/user_tokens/generate"
+#     method: POST
+#     user: "admin"
+#     password: "admin"
+#     force_basic_auth: yes
+#     body_format: form-urlencoded
+#     body:
+#       name: "zopstix-ansible-token-1"
+#   when: "'zopstix-ansible-token-1' not in existing_tokens"
+#   register: sonar_token_response
+
+
+# - name: Check if SonarQube Token File Exists
+#   ansible.builtin.stat:
+#     path: /home/vagrant/sonarqube_token.txt
+#   register: sonar_token_file
+
+# - name: Read existing SonarQube Token if file exists
+#   ansible.builtin.set_fact:
+#     sonar_token: "{{ lookup('file', '/home/vagrant/sonarqube_token.txt') }}"
+#   when: sonar_token_file.stat.exists
+
+# - name: Store the generated SonarQube Token
+#   ansible.builtin.copy:
+#     content: "{{ sonar_token_response.json.token }}"
+#     dest: /home/vagrant/sonarqube_token.txt
+#     mode: "0600"
+#     owner: vagrant
+#     group: vagrant
+
+# - name: Store or Retrieve SonarQube Token
+#   ansible.builtin.set_fact:
+#     sonar_token: >-
+#       {{ sonar_token_response.json.token
+#       if sonar_token_response.json.token is defined
+#       else lookup('file', '/home/vagrant/sonarqube_token.txt') | default('', true) }}
+
+# - name: Display the SonarQube Token
+#   debug:
+#     msg: "SonarQube Token: {{ sonar_token }}"
+
+- name: Get SonarQube NodePort
+  ansible.builtin.command: "kubectl get svc sonarqube-sonarqube -n sonarqube -o jsonpath='{.spec.ports[0].nodePort}'"
+  register: sonar_nodeport
+  changed_when: false
+
+- name: Get Kubernetes Node Internal IP
+  ansible.builtin.command: "kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type==\"InternalIP\")].address}'"
+  register: sonar_internal_ip
+  changed_when: false
+
+- name: Set SonarQube Host Variable
+  set_fact:
+    sonar_host: "http://{{ sonar_internal_ip.stdout }}:{{ sonar_nodeport.stdout }}"
+
+- name: Clone Node.js repository
+  git:
+    repo: "https://github.com/rambler-digital-solutions/rship.git"
+    dest: "/home/vagrant/nodejs"
+    version: master
+    force: yes
+
+- name: Clone Python repository
+  git:
+    repo: "https://github.com/Toxic-Noob/ToxicBomber.git"
+    dest: "/home/vagrant/python"
+    version: main
+    force: yes
+
+# - name: Clone PHP repository
+#   git:
+#     repo: "https://github.com/MadExploits/Gecko.git"
+#     dest: "/home/vagrant/php"
+#     version: master
+#     force: yes
+
+# - name: Clone Magento repository
+#   git:
+#     repo: "https://github.com/magento/magento2.git"
+#     dest: "/home/vagrant/magento"
+#     version: master
+#     force: yes
+
+# - name: Clone Python repository
+#   git:
+#     repo: "https://github.com/Toxic-Noob/ToxicBomber.git"
+#     dest: "/home/vagrant/python"
+#     version: master
+#     force: yes
+
+- name: Install unzip package (if missing)
+  ansible.builtin.package:
+    name: unzip
+    state: present
+
+- name: Install SonarQube Scanner
+  ansible.builtin.get_url:
+    url: "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip"
+    dest: "/tmp/sonar-scanner.zip"
+
+- name: Unzip SonarQube Scanner
+  ansible.builtin.unarchive:
+    src: "/tmp/sonar-scanner.zip"
+    dest: "/opt/"
+    remote_src: yes
+
+- name: Add Sonar Scanner to PATH
+  ansible.builtin.lineinfile:
+    path: "/etc/profile"
+    line: 'export PATH=$PATH:/opt/sonar-scanner-5.0.1.3006-linux/bin'
+    create: yes
+
+- name: Scan Node.js repository
+  command: >
+    /opt/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner
+     -Dsonar.projectKey=nodejs
+     -Dsonar.sources=/home/vagrant/nodejs
+     -Dsonar.language=js
+     -Dsonar.host.url={{ sonar_host }}
+     -Dsonar.login={{ sonar_token }}
+  register: node_scan_output
+  ignore_errors: true
+
+- name: Scan Python repository
+  command: >
+    /opt/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner
+     -Dsonar.projectKey=python
+     -Dsonar.sources=/home/vagrant/python
+     -Dsonar.language=js
+     -Dsonar.host.url={{ sonar_host }}
+     -Dsonar.login={{ sonar_token }}
+  register: python_scan_output
+  ignore_errors: true
+
+- name: Retrieve SonarQube Issues Count
+  ansible.builtin.uri:
+    url: "{{ sonar_host }}/api/issues/search?componentKeys=nodejs"
+    method: GET
+    headers:
+      Authorization: "Basic {{ (sonar_token + ':') | b64encode }}"
+  register: node_sonar_issues
+
+- name: Retrieve SonarQube Issues Count
+  ansible.builtin.uri:
+    url: "{{ sonar_host }}/api/issues/search?componentKeys=python"
+    method: GET
+    headers:
+      Authorization: "Basic {{ (sonar_token + ':') | b64encode }}"
+  register: python_sonar_issues
+
+# - name: Scan PHP repository
+#   command: >
+#     sonar-scanner
+#     -Dsonar.projectKey=php
+#     -Dsonar.sources=/home/vagrant/php
+#     -Dsonar.language=php
+#     -Dsonar.host.url={{ sonar_host }}
+#     -Dsonar.login={{ sonar_token }}
+#   register: php_scan_output
+#   ignore_errors: true
+
+# - name: Scan Magento repository
+#   command: >
+#     sonar-scanner
+#     -Dsonar.projectKey=magento
+#     -Dsonar.sources=/home/vagrant/magento
+#     -Dsonar.language=php
+#     -Dsonar.host.url={{ sonar_host }}
+#     -Dsonar.login={{ sonar_token }}
+#   register: magento_scan_output
+#   ignore_errors: true
+
+- name: Display nodejs SonarQube Scan Results
+  debug:
+    msg: |
+      Node.js Scan Output:
+      {{ node_scan_output.stdout }}
+
+- name: Display python SonarQube Scan Results
+  debug:
+    msg: |
+      Python Scan Output:
+      {{ python_scan_output.stdout }}
+
+- name: Save nodejs scan results to a file
+  copy:
+    content: |
+      Node.js Scan Output:
+      {{ node_scan_output.stdout }}
+    dest: "/tmp/sonarqube_node_scan_results.log"
+
+- name: Save python scan results to a file
+  copy:
+    content: |
+      Node.js Scan Output:
+      {{ python_scan_output.stdout }}
+    dest: "/tmp/sonarqube_python_scan_results.log"
+
+- name: Extract Sonar Task ID from SonarQube Output for node
+  set_fact:
+    sonar_node_task_id: "{{ node_scan_output | regex_findall('task\\?id=([a-f0-9\\-]+)') | first }}"
+
+- name: Extract Sonar Task ID from SonarQube Output for python
+  set_fact:
+    sonar_python_task_id: "{{ python_scan_output | regex_findall('task\\?id=([a-f0-9\\-]+)') | first }}"
+
+- name: Debug extracted Sonar Task ID for node
+  debug:
+    msg: "Sonar Task ID is {{ sonar_node_task_id }}"
+
+- name: Debug extracted Sonar Task ID for python
+  debug:
+    msg: "Sonar Task ID is {{ sonar_python_task_id }}"
+
+- name: Send SonarQube Scan Result to Slack for node
+  community.general.slack:
+    token: "{{ slack_token }}"
+    msg: |
+      🚀 *SonarQube Scan Completed*
+      *Project:* Node.js
+      *Status:* SUCCESS ✅
+      *Report:* <{{ sonar_host }}/dashboard?id=nodejs|View SonarQube Report>
+      *Processing:* <{{ sonar_host }}/api/ce/task?id={{ sonar_node_task_id }}|View Processing Task>
+      *Issues:* {{ node_sonar_issues.json.paging.total }} 🚨 
+    channel: "#sonarqube-alerts"
+    username: "SonarQubeBot"
+    icon_emoji: ":robot_face:"
+  when: node_scan_output is success 
+
+- name: Send SonarQube Scan Result to Slack for python
+  community.general.slack:
+    token: "{{ slack_token }}"
+    msg: |
+      🚀 *SonarQube Scan Completed*
+      *Project:* Python
+      *Status:* SUCCESS ✅
+      *Report:* <{{ sonar_host }}/dashboard?id=nodejs|View SonarQube Report>
+      *Processing:* <{{ sonar_host }}/api/ce/task?id={{ sonar_python_task_id }}|View Processing Task>
+      *Issues:* {{ python_sonar_issues.json.paging.total }} 🚨 
+    channel: "#sonarqube-alerts"
+    username: "SonarQubeBot"
+    icon_emoji: ":robot_face:"
+  when: node_scan_output is success 

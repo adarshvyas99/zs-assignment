@@ -12,18 +12,107 @@
   command: /tmp/get_helm.sh
 
 - name: Add Helm repository
-  command: helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
-  args:
-    warn: false
+  command: helm repo add sonarqube "https://SonarSource.github.io/helm-chart-sonarqube"
     
 - name: Update Helm repositories
   command: helm repo update
 
+- name: Install pip on managed node
+  ansible.builtin.package:
+    name: python3-pip
+    state: present
+
+- name: Check pip version
+  ansible.builtin.command: pip3 --version
+  register: pip_version
+  changed_when: false
+
+- debug:
+    msg: "Pip version: {{ pip_version.stdout }}"
+
+- name: Install Kubernetes Python dependencies
+  ansible.builtin.pip:
+    name:
+      - openshift
+      - pyyaml
+      - kubernetes
+
+- name: Ensure vagrant owns kubectl and kind
+  file:
+    path: "{{ item }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+  loop:
+    - /usr/local/bin/kind
+    - /usr/local/bin/kubectl
+    
+# - name: Create a k8s namespace for Sonarqube
+#   k8s:
+#    name: sonarqube
+#    api_version: v1
+#    kind: Namespace
+#    state: present
+#    kubeconfig: "/home/vagrant/.kube/config"
+
+# - name: Allow Kubernetes firewall rules
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: "{{ item }}"
+#     proto: tcp
+#   loop:
+#     - 22
+#     - 80
+#     - 8080
+#     - 6443
+#     - 2379:2380
+#     - 10250
+#     - 10251
+#     - 10252
+#     - 10255
+#     - 5473
+
+# - name: Enable the firewall
+#   ansible.builtin.ufw:
+#     state: enabled
+
+# - name: Reload the firewall
+#   ansible.builtin.command:
+#     cmd: ufw reload
+#   become: true
+
+- name: Create a k8s namespace for Sonarqube
+  shell: kubectl create namespace sonarqube --dry-run=client -o yaml | kubectl apply -f -
+  become: true
+
+# - name: Create a k8s namespace for Sonarqube
+#   k8s:
+#     name: sonarqube
+#     api_version: v1
+#     kind: Namespace
+#     state: present
+#     kubeconfig: "/home/vagrant/.kube/config"
+
+- name: Copy values.yaml to Managed Node
+  copy:
+    src: /home/vagrant/ansible/roles/sonarqube/vars/values.yml
+    dest: /home/vagrant/values.yaml
+    mode: '0644'
+
+- name: Check if SonarQube is already installed
+  ansible.builtin.command: "helm list -n sonarqube --filter '^sonarqube$'"
+  register: helm_status
+  changed_when: false
+  failed_when: false
+
 - name: Deploy SonarQube using Helm
   command: >
     helm upgrade --install sonarqube sonarqube/sonarqube \
-    --namespace sonarqube --create-namespace \
-    -f /home/vagrant/ansible/roles/sonarqube/templates/values.yaml
+    --namespace sonarqube \
+    -f /home/vagrant/values.yaml
+  when: helm_status.stdout == ""
 
 - name: Wait for SonarQube to be ready
-  command: kubectl wait --for=condition=available --timeout=300s deployment/sonarqube -n sonarqube
+  command: kubectl wait --for=condition=available --timeout=300s statefulset/sonarqube-sonarqube -n sonarqube
+  when: helm_status.stdout == ""
+

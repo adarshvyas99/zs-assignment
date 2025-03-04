@@ -1,0 +1,11 @@
+# ---
+# - name: Send Slack Notification if Issues Found
+#   uri:
+#     url: "https://hooks.slack.com/services/{{ slack_webhook }}"
+#     method: POST
+#     body_format: json
+#     body: >
+#       {
+#         "text": "🚨 SonarQube Scan Completed! {{ sonar_project_key }} has {{ sonar_issues.json.paging.total }} issues."
+#       }
+#   when: sonar_issues.json.paging.total | int > 0

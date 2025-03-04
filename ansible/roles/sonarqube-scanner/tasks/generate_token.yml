@@ -1,0 +1,41 @@
+---
+- name: Check if SonarQube Token Already Exists
+  ansible.builtin.uri:
+    url: "http://localhost:9000/api/user_tokens/search"
+    method: GET
+    user: "admin"
+    password: "admin"
+    force_basic_auth: yes
+  register: sonar_existing_tokens
+
+- name: Extract existing SonarQube token names
+  set_fact:
+    existing_tokens: "{{ sonar_existing_tokens.json.userTokens | map(attribute='name') | list }}"
+
+- name: Generate SonarQube Token if Not Exists
+  ansible.builtin.uri:
+    url: "http://localhost:9000/api/user_tokens/generate"
+    method: POST
+    user: "admin"
+    password: "admin"
+    force_basic_auth: yes
+    body_format: form-urlencoded
+    body:
+      name: "zs-ansible-token"
+  when: "'zs-ansible-token' not in existing_tokens"
+  register: sonar_token_response
+
+- name: Use Existing SonarQube Token (if available)
+  set_fact:
+    sonar_token: "{{ sonar_token_response.json.token if sonar_token_response.json.token is defined else 'Token already exists' }}"
+
+- name: Display the SonarQube Token
+  debug:
+    msg: "SonarQube Token: {{ sonar_token }}"
+
+- name: Store the SonarQube Token in a Secure File
+  ansible.builtin.copy:
+    content: "{{ sonar_token }}"
+    dest: "/home/vagrant/sonarqube_token.txt"
+    mode: "0600"
+  when: sonar_token != 'Token already exists'

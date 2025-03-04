@@ -1,6 +1,9 @@
+edition: developer
+monitoringPasscode: "zs-securepasscode"
 service:
-  type: ClusterIP
+  type: NodePort
   port: 9000
+  nodePort: 30000
 persistence:
   enabled: true
   size: 10Gi

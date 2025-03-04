@@ -1,0 +1,75 @@
+---
+ - name: Scan Node.js repository
+   command: >
+     sonar-scanner
+     -Dsonar.projectKey=nodejs
+     -Dsonar.sources=/home/vagrant/nodejs
+     -Dsonar.language=js
+     -Dsonar.host.url={{ sonar_host }}
+     -Dsonar.login={{ sonar_token }}
+   register: node_scan_output
+   ignore_errors: true
+
+ - name: Scan PHP repository
+   command: >
+     sonar-scanner
+     -Dsonar.projectKey=php
+     -Dsonar.sources=/home/vagrant/php
+     -Dsonar.language=php
+     -Dsonar.host.url={{ sonar_host }}
+     -Dsonar.login={{ sonar_token }}
+   register: php_scan_output
+   ignore_errors: true
+
+ - name: Scan Magento repository
+   command: >
+     sonar-scanner
+     -Dsonar.projectKey=magento
+     -Dsonar.sources=/home/vagrant/magento
+     -Dsonar.language=php
+     -Dsonar.host.url={{ sonar_host }}
+     -Dsonar.login={{ sonar_token }}
+   register: magento_scan_output
+   ignore_errors: true
+
+ - name: Scan Python repository
+   command: >
+     sonar-scanner
+     -Dsonar.projectKey=python
+     -Dsonar.sources=/home/vagrant/python
+     -Dsonar.language=py
+     -Dsonar.host.url={{ sonar_host }}
+     -Dsonar.login={{ sonar_token }}
+   register: python_scan_output
+   ignore_errors: true
+
+ - name: Display SonarQube Scan Results
+   debug:
+     msg: |
+       Node.js Scan Output:
+       {{ node_scan_output.stdout }}
+
+       PHP Scan Output:
+       {{ php_scan_output.stdout }}
+
+       Magento Scan Output:
+       {{ magento_scan_output.stdout }}
+
+       Python Scan Output:
+       {{ python_scan_output.stdout }}
+
+ - name: Save scan results to a file
+   copy:
+     content: |
+       Node.js Scan Output:
+       {{ node_scan_output.stdout }}
+
+       PHP Scan Output:
+       {{ php_scan_output.stdout }}
+
+       Magento Scan Output:
+       {{ magento_scan_output.stdout }}
+
+       Python Scan Output:
+       {{ python_scan_output.stdout }}
+     dest: "/tmp/sonarqube_scan_results.log"

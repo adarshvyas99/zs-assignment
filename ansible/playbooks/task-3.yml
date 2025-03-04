@@ -1,0 +1,8 @@
+---
+- name: Setup Kubernetes Cluster and Deploy SonarQube
+  hosts: ansible-managed
+  become: true
+  roles:
+    - { role: k8s_cluster, when: ansible_run_role == "k8s_cluster" }
+    - { role: sonarqube, when: ansible_run_role == "sonarqube" }
+    - { role: sonarqube-scanner, when: ansible_run_role == "sonarqube-scanner"}

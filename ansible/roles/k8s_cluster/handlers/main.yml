@@ -1,5 +1,5 @@
-- name: Restart containerd
+- name: Restart docker
   systemd:
-    name: containerd
+    name: docker
     state: restarted
     enabled: yes

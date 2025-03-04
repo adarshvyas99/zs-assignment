@@ -1,0 +1,13 @@
+---
+ - name: Fetch SonarQube Analysis Report
+   uri:
+     url: "{{ sonar_host }}/api/issues/search?componentKeys={{ sonar_project_key }}"
+     method: GET
+     return_content: yes
+     headers:
+       Authorization: "Bearer {{ sonar_token }}"
+   register: sonar_issues
+
+ - name: Show Code Issues
+   debug:
+     msg: "{{ sonar_issues.json.issues }}"

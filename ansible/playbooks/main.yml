@@ -1,7 +1,0 @@
----
-- name: Setup Kubernetes Cluster and Deploy SonarQube
-  hosts: ansible-managed
-  become: true
-  roles:
-    - k8s_cluster
-    - sonarqube

@@ -1,0 +1,7 @@
+---
+sonar_host: "http://10.96.11.31:9000"
+sonar_token: ""
+sonar_project_key: "my_project"
+git_repo: "https://github.com/sample/repo.git"
+slack_webhook: "your-slack-webhook"
+slack_token: T08GQLSBYTS/B08FUDH9X2S/szOF85NnMcqeahss4W2tRTpf
