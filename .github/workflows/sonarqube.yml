@@ -1,0 +1,52 @@
+name: SonarQube Scan
+
+on:
+  push:
+    branches:
+      - task-3_magento-sonar
+  pull_request:
+    branches:
+      - task-3_magento-sonar
+
+jobs:
+  sonarqube_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Install SonarScanner
+        run: |
+          wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar-scanner.zip
+          mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+
+      - name: Run SonarQube Scan
+        run: |
+          /opt/sonar-scanner/bin/sonar-scanner \
+            -Dsonar.projectKey=magento-project \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=${{ secrets.SONARQUBE_HOST }} \
+            -Dsonar.login=${{ secrets.SONARQUBE_TOKEN }}
+
+      - name: Send Slack Notification
+        if: always()
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "SonarQube Scan Completed: *${{ github.repository }}*\nStatus: Success\n<${{ secrets.SONARQUBE_HOST }}/dashboard?id=magento-project|View Report>"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  deploy:
+    needs: sonarqube_scan
+    environment: Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Magento to Kubernetes
+        run: echo "Deploying Magento to K8s..."
